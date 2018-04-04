@@ -35,13 +35,14 @@ class MagRoboEnv(gym.Env):
         self.spec = EnvSpec(timestep_limit = myconfig.Config.TIMESTEP_LIMIT, id=1)
 
 
-        # observation is the x, y, z coordinate of the grid
+        # observation is the x, y, z coordinate & m. moments of the grid
         self.observation_space = spaces.Box(low=MProbe.MProbe.ob_low, high=MProbe.MProbe.ob_high)
 
 	#Action Space => Current values
         if myconfig.Config.CURR_DEVIATE_ACTIVE == True:
-            self.action_space = spaces.MultiDiscrete(MProbe.Current.deviate_action)
-            # 0 -> no change; 1 -> +ve change; 2 -> -ve change
+            #self.action_space = spaces.Tuple(spaces.MultiDiscrete(MProbe.Current.deviate_action))
+            self.action_space = spaces.Box(low=MProbe.Current.deviate_action_low, high=MProbe.Current.deviate_action_high, dtype=np.int8)
+            # 0 -> no change; 1 -> +ve change; -1 -> -ve change
         else:
             self.action_space = spaces.Box(low=MProbe.Current.ac_low, high=MProbe.Current.ac_high)
 
@@ -102,16 +103,27 @@ class MagRoboEnv(gym.Env):
             done = True
         else:
             done = False'''
-        
-        if self.curr_dist >= 10.0 and self.count_ts >= 50:
-            print(" Reset Reward:{}, TS={}".format(reward, self.count_ts))
-            done = True
-        elif self.curr_dist < 0.1:
-            print(" Reset Goal Reward:{}, TS={}".format(reward, self.count_ts))
-            done = True
-        else:
-            done = False
+        done = False
+        if myconfig.Config.TRAINING_MODE == "COORD":
+            if self.curr_dist >= 1.5*self.init_dist and self.count_ts >= myconfig.Config.RESET_STEP_COUNT:
+                print(" Reset Reward:{}, TS={}".format(reward, self.count_ts))
+                done = True
+            elif self.curr_dist < myconfig.Config.PROBE_DIM:
+                print(" Reset Goal Reward:{}, TS={}".format(reward, self.count_ts))
+                done = True
+            else:
+                done = False
+        elif myconfig.Config.TRAINING_MODE == "MOMENT":
+            if self.curr_moment_dist >= 1.5*self.init_moment_dist and self.count_ts >= myconfig.Config.RESET_STEP_COUNT:
+                print(" Reset Reward:{}, TS={}".format(reward, self.count_ts))
+                done = True
+            elif self.curr_moment_dist < 0.01:
+                print(" Reset Goal Reward:{}, TS={}".format(reward, self.count_ts))
+                done = True
+            else:
+                done = False
 
+        
         info = {}
         
         return ob, reward, done, info
@@ -129,7 +141,7 @@ class MagRoboEnv(gym.Env):
         else:
             MProbe.desired_current.set_all_sys_current(action)
 
-        #sleep sometime before reading
+        #sleep for sometime before reading
         sleep_time = 1.0 / myconfig.Config.RUN_TIMES_PER_SEC
         sleep(sleep_time) #sleep in seconds
         
@@ -153,7 +165,23 @@ class MagRoboEnv(gym.Env):
 
         #Find Distance b/w start & goal
         self.init_dist = MProbe.slave.find_distance(MProbe.goal)
+        self.init_moment_dist = MProbe.slave.find_moment_distance(MProbe.goal)
+        self.reward_metrix = []
+        nth_dist = self.init_dist / myconfig.Config.REWARD_GRADIENT
+        nth_moment_dist = self.init_moment_dist / myconfig.Config.REWARD_GRADIENT
+
+        if myconfig.Config.TRAINING_MODE == "COORD":
+            for i in range(myconfig.Config.REWARD_GRADIENT):
+                self.reward_metrix.append(i*nth_dist)
+        elif myconfig.Config.TRAINING_MODE == "MOMENT":
+            for i in range(myconfig.Config.REWARD_GRADIENT):
+                self.reward_metrix.append(i*nth_moment_dist)
+        else:
+            #TODO
+            pass
+        
         self.curr_dist = self.init_dist
+        self.curr_moment_dist = self.init_moment_dist
         
         return np.array(ob)
 
@@ -165,29 +193,40 @@ class MagRoboEnv(gym.Env):
     def _get_reward(self):
 
         self.last_dist = self.curr_dist
+        self.last_moment_dist = self.curr_moment_dist
 
         self.curr_dist = MProbe.slave.find_distance(MProbe.goal)
-        print("distance:{}".format(self.curr_dist))
+        self.curr_moment_dist = MProbe.slave.find_moment_distance(MProbe.goal)
+        print("distance:{} {}".format(self.curr_dist, self.curr_moment_dist))
         #print("goal: ({}, {}, {})".format(MProbe.goal.coordinate.x, MProbe.goal.coordinate.y, MProbe.goal.coordinate.z))
-        logging.debug("distance:{}".format(self.curr_dist))
+        logging.debug("distance:{} {}".format(self.curr_dist, self.curr_moment_dist))
         
         
         """ Reward is given for XYZ. """
-        '''
-        if self.curr_dist == 0.0:
-            return 4
-        elif self.curr_dist < 1.0:
-            return 3
-        elif self.curr_dist < 5.0:
-            return 2
-        elif self.last_dist > self.curr_dist:
-            return 1
-        elif self.last_dist < self.curr_dist:
-            return -1
+        if myconfig.Config.TRAINING_MODE == "COORD":
+            if self.curr_dist == 0.0:
+                return 1
+            elif self.curr_dist < myconfig.Config.PROBE_DIM:
+                return 1
+            else:
+                for i in range(myconfig.Config.REWARD_GRADIENT):
+                    if self.curr_dist < self.reward_metrix[i]:
+                        return i*0.1
+        elif myconfig.Config.TRAINING_MODE == "MOMENT":
+            if self.curr_moment_dist == 0.0:
+                return 1
+            elif self.curr_moment_dist < 0.01:
+                return 1
+            else:
+                for i in range(myconfig.Config.REWARD_GRADIENT):
+                    if self.curr_moment_dist < self.reward_metrix[i]:
+                        return i*0.1
         else:
-            return 0
-        '''
-        return np.random.normal(self.curr_dist, 0.5)*10
+            #TODO
+            pass
+        
+        #return np.random.normal(self.curr_dist, 0.5)*10
+        return -1
 
     def render(self, mode='human', close=False):
         pass
