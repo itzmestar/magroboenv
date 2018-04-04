@@ -88,13 +88,32 @@ class MagneticMoment():
     def __str__(self):
         return "({}, {}, {})".format(self.mx, self.my, self.mz)
 
+    def find_distance(self, MagneticMoment):
+        sum = square(self.mx - MagneticMoment.mx) + square(self.my - MagneticMoment.my) + square(self.mz - MagneticMoment.mz)
+        return math.sqrt(sum)
+    
+    def set_random_xyz(self):
+        self.mx = random.uniform(myconfig.Config.X_MAX_MAG_MOMENT, myconfig.Config.X_MIN_MAG_MOMENT)
+        self.my = random.uniform(myconfig.Config.Y_MAX_MAG_MOMENT, myconfig.Config.Y_MIN_MAG_MOMENT)
+        self.mz = random.uniform(myconfig.Config.Z_MAX_MAG_MOMENT, myconfig.Config.Z_MIN_MAG_MOMENT)
+        xyz = [ self.mx, self.my, self.mz ]
+        return xyz
+
+    def set_random_dev_xyz(self, MagneticMoment):
+        self.mx = random.uniform(MagneticMoment.mx - myconfig.Config.X_MAX_MAG_MOMENT_DEVIATE, MagneticMoment.mx + myconfig.Config.X_MAX_MAG_MOMENT_DEVIATE)
+        self.my = random.uniform(MagneticMoment.my - myconfig.Config.Y_MAX_MAG_MOMENT_DEVIATE, MagneticMoment.my + myconfig.Config.Y_MAX_MAG_MOMENT_DEVIATE)
+        self.mz = random.uniform(MagneticMoment.mz - myconfig.Config.Z_MAX_MAG_MOMENT_DEVIATE, MagneticMoment.mz + myconfig.Config.Z_MAX_MAG_MOMENT_DEVIATE)
+        xyz = [ self.mx, self.my, self.mz ]
+        return xyz
+
 #Electric Current class
 class Current():
     
     ac_low = np.array([myconfig.Config.MIN_CURRENT, myconfig.Config.MIN_CURRENT, myconfig.Config.MIN_CURRENT, myconfig.Config.MIN_CURRENT, myconfig.Config.MIN_CURRENT, myconfig.Config.MIN_CURRENT, myconfig.Config.MIN_CURRENT, myconfig.Config.MIN_CURRENT, myconfig.Config.MIN_CURRENT])
     ac_high = np.array([myconfig.Config.MAX_CURRENT, myconfig.Config.MAX_CURRENT, myconfig.Config.MAX_CURRENT, myconfig.Config.MAX_CURRENT, myconfig.Config.MAX_CURRENT, myconfig.Config.MAX_CURRENT, myconfig.Config.MAX_CURRENT, myconfig.Config.MAX_CURRENT, myconfig.Config.MAX_CURRENT])
 
-    deviate_action = [3, 3, 3, 3, 3, 3, 3, 3, 3]
+    deviate_action_low = np.array([-2, -2, -2, -2, -2, -2, -2, -2, -2])
+    deviate_action_high = np.array([1, 1, 1, 1, 1, 1, 1, 1, 1])
     
     def __init__(self, name='unknown'):
         self.amp = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
@@ -141,10 +160,10 @@ class Current():
     def set_all_sys_curr_deviate(self, curr):
         for i in range(9):
             dev = 0
-            if curr[i] == 0:
+            if int(round(curr[i])) == 0:
                 #perform no change
                 continue
-            elif curr[i] == 1:
+            elif int(round(curr[i])) == 1:
                 #increment the curr
                 dev = myconfig.Config.MAX_CURR_DEVIATE
             else:
@@ -195,8 +214,8 @@ class Current():
 #class representing the probing robot 
 class MProbe():
 
-    ob_low  = np.array([myconfig.Config.X_MIN_VAL, myconfig.Config.Y_MIN_VAL, myconfig.Config.Z_MIN_VAL, myconfig.Config.MIN_MAG_MOMENT, myconfig.Config.MIN_MAG_MOMENT, myconfig.Config.MIN_MAG_MOMENT])
-    ob_high = np.array([myconfig.Config.X_MAX_VAL, myconfig.Config.Y_MAX_VAL, myconfig.Config.Z_MAX_VAL, myconfig.Config.MAX_MAG_MOMENT, myconfig.Config.MAX_MAG_MOMENT, myconfig.Config.MAX_MAG_MOMENT])
+    ob_low  = np.array([myconfig.Config.X_MIN_VAL, myconfig.Config.Y_MIN_VAL, myconfig.Config.Z_MIN_VAL, myconfig.Config.X_MIN_MAG_MOMENT, myconfig.Config.Y_MIN_MAG_MOMENT, myconfig.Config.Z_MIN_MAG_MOMENT])
+    ob_high = np.array([myconfig.Config.X_MAX_VAL, myconfig.Config.Y_MAX_VAL, myconfig.Config.Z_MAX_VAL, myconfig.Config.X_MAX_MAG_MOMENT, myconfig.Config.Y_MAX_MAG_MOMENT, myconfig.Config.Z_MAX_MAG_MOMENT])
     
     def __init__(self, name='unknown'):
         self.coordinate = Coordinate()
@@ -259,19 +278,35 @@ class MProbe():
 
         
     def set_random_xyz(self):
-        xyz = self.coordinate.set_random_xyz()
+        if myconfig.Config.TRAINING_MODE == "MOMENT":
+            xyz = self.mmoment.set_random_xyz()
+        elif myconfig.Config.TRAINING_MODE == "COORD":
+            xyz = self.coordinate.set_random_xyz()
+        else:
+            xyz = self.coordinate.set_random_xyz()
+            xyz1 = self.mmoment.set_random_xyz()
         print("Target: {}".format(self))
         logging.debug("Target: {}".format(self))
-        return xyz
+        return self
     
     def set_random_dev_xyz(self, MProbe):
-        xyz = self.coordinate.set_random_dev_xyz(MProbe.coordinate)
+        if myconfig.Config.TRAINING_MODE == "MOMENT":
+            xyz = self.mmoment.set_random_dev_xyz(MProbe.mmoment)
+        elif myconfig.Config.TRAINING_MODE == "COORD":
+            xyz = self.coordinate.set_random_dev_xyz(MProbe.coordinate)
+        else:
+            xyz = self.mmoment.set_random_dev_xyz(MProbe.mmoment)
+            xyz1 = self.coordinate.set_random_dev_xyz(MProbe.coordinate)
         print("Target: {}".format(self))
         logging.debug("Target: {}".format(self))
-        return xyz        
+        return self        
         
     def find_distance(self, MProbe):
         dist = self.coordinate.find_distance(MProbe.coordinate)
+        return dist
+
+    def find_moment_distance(self, MProbe):
+        dist = self.mmoment.find_distance(MProbe.mmoment)
         return dist
 
 #create a labview client
