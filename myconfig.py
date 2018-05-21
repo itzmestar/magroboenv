@@ -27,7 +27,7 @@ class Config:
     Z_MAX_MAG_MOMENT = 7.0
     Z_MIN_MAG_MOMENT = -7.0
 
-    X_MAX_MAG_MOMENT_DEVIATE = 2.0
+    X_MAX_MAG_MOMENT_DEVIATE = 1.0
     Y_MAX_MAG_MOMENT_DEVIATE = 0.0
     Z_MAX_MAG_MOMENT_DEVIATE = 0.0
 
@@ -39,7 +39,7 @@ class Config:
     # MOMENT -> M. Moments
     # BOTH -> Both
     # Default -> Both
-    TRAINING_MODE = "COORD"
+    TRAINING_MODE = "MOMENT"
     
     #Reward gradient
     REWARD_GRADIENT = 10
