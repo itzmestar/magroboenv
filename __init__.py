@@ -5,4 +5,3 @@ register(
     id='MagRoboEnv-v0',
     entry_point='magroboenv.magroboenv:MagRoboEnv',
 )
-    

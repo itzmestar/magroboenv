@@ -5,13 +5,16 @@ import win32com.client  # Python ActiveX Client
 import logging
 import magroboenv.myconfig as myconfig
 
-##########global class and function definition#############
+# #########global class and function definition############ #
 
 def square(x):
     return x*x
 
-#class representing the coordinates
-class Coordinate():
+
+class Coordinate:
+    """
+    class representing the coordinates of probe
+    """
     
     def __init__(self):
         self.x=0.0
@@ -58,8 +61,11 @@ class Coordinate():
         xyz = [ self.x, self.y, self.z ]
         return xyz
         
-#class representing the coordinates
-class MagneticMoment():
+
+class MagneticMoment:
+    """
+    class representing the magnetic moment of probe
+    """
     
     def __init__(self):
         self.mx=0.0
@@ -106,8 +112,11 @@ class MagneticMoment():
         xyz = [ self.mx, self.my, self.mz ]
         return xyz
 
-#Electric Current class
-class Current():
+
+class Current:
+    """
+    Electric Current class
+    """
     
     ac_low = np.array([myconfig.Config.MIN_CURRENT, myconfig.Config.MIN_CURRENT, myconfig.Config.MIN_CURRENT, myconfig.Config.MIN_CURRENT, myconfig.Config.MIN_CURRENT, myconfig.Config.MIN_CURRENT, myconfig.Config.MIN_CURRENT, myconfig.Config.MIN_CURRENT, myconfig.Config.MIN_CURRENT])
     ac_high = np.array([myconfig.Config.MAX_CURRENT, myconfig.Config.MAX_CURRENT, myconfig.Config.MAX_CURRENT, myconfig.Config.MAX_CURRENT, myconfig.Config.MAX_CURRENT, myconfig.Config.MAX_CURRENT, myconfig.Config.MAX_CURRENT, myconfig.Config.MAX_CURRENT, myconfig.Config.MAX_CURRENT])
@@ -118,7 +127,7 @@ class Current():
     def __init__(self, name='unknown'):
         self.amp = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         self.name = name
-		
+
     def __str__(self):
         return "({}, {})".format(self.name, self.amp)
 
@@ -126,15 +135,15 @@ class Current():
         while True:
             dev = random.uniform(myconfig.Config.MAX_DEVIATE, myconfig.Config.MIN_DEVIATE)
             dev = curr + dev
-            if dev < myconfig.Config.MAX_CURRENT and dev > myconfig.Config.MIN_CURRENT:
+            if myconfig.Config.MAX_CURRENT > dev > myconfig.Config.MIN_CURRENT:
                 return dev
             
     def generate_random(self):
         for i in range(9):
-            #self.amp[i] = self.uniform_current(self.amp[i])
+            # self.amp[i] = self.uniform_current(self.amp[i])
             self.amp[i] = random.uniform(myconfig.Config.MAX_CURRENT, myconfig.Config.MIN_CURRENT)
-        #print("random:{}".format(self))
-	
+        # print("random:{}".format(self))
+
     def set_current(self, a1, a2, a3, a4, a5, a6, a7, a8, a9):
         self.amp[0] = a1
         self.amp[1] = a2
@@ -145,10 +154,10 @@ class Current():
         self.amp[6] = a7
         self.amp[7] = a8
         self.amp[8] = a9
-        #print(self)
+        # print(self)
 
     def set_sys_current(self, index, cur):
-        if cur < myconfig.Config.MAX_CURRENT and cur > myconfig.Config.MIN_CURRENT:
+        if myconfig.Config.MAX_CURRENT > cur > myconfig.Config.MIN_CURRENT:
             self.amp[index] = cur
             VI.setcontrolvalue(myconfig.Config.AMP_LABEL[index], str(self.amp[index]))
 
@@ -161,13 +170,13 @@ class Current():
         for i in range(9):
             dev = 0
             if int(round(curr[i])) == 0:
-                #perform no change
+                # perform no change
                 continue
             elif int(round(curr[i])) == 1:
-                #increment the curr
+                # increment the current
                 dev = myconfig.Config.MAX_CURR_DEVIATE
             else:
-                #decrement the curr
+                # decrement the current
                 dev = myconfig.Config.MIN_CURR_DEVIATE
             
             self.amp[i] += dev
@@ -179,11 +188,9 @@ class Current():
 
             VI.setcontrolvalue(myconfig.Config.AMP_LABEL[i], str(self.amp[i]))
 
-         
     def read_sys_current(self):
         pass
 
-        
     def get_a1(self):
         return self.amp[0]
 
@@ -211,8 +218,11 @@ class Current():
     def get_a9(self):
         return self.amp[8]
 
-#class representing the probing robot 
-class MProbe():
+
+class MProbe:
+    """
+    class representing the probing robot
+    """
 
     ob_low  = np.array([myconfig.Config.X_MIN_VAL, myconfig.Config.Y_MIN_VAL, myconfig.Config.Z_MIN_VAL, myconfig.Config.X_MIN_MAG_MOMENT, myconfig.Config.Y_MIN_MAG_MOMENT, myconfig.Config.Z_MIN_MAG_MOMENT])
     ob_high = np.array([myconfig.Config.X_MAX_VAL, myconfig.Config.Y_MAX_VAL, myconfig.Config.Z_MAX_VAL, myconfig.Config.X_MAX_MAG_MOMENT, myconfig.Config.Y_MAX_MAG_MOMENT, myconfig.Config.Z_MAX_MAG_MOMENT])
@@ -258,7 +268,7 @@ class MProbe():
         self.last_coordinate.set_coordinate(self.coordinate)
         self.coordinate.set_xyz(x, y, z)
         self.last_coordinate_dist = self.coordinate.find_distance(self.last_coordinate)
-        #print(self)
+        # print(self)
         logging.debug(self)
         
     def read_sys_orientation(self):
@@ -276,7 +286,6 @@ class MProbe():
 
         return ori
 
-        
     def set_random_xyz(self):
         if myconfig.Config.TRAINING_MODE == "MOMENT":
             xyz = self.mmoment.set_random_xyz()
@@ -309,7 +318,7 @@ class MProbe():
         dist = self.mmoment.find_distance(MProbe.mmoment)
         return dist
 
-#create a labview client
+# create a labview client
 LabVIEW = win32com.client.Dispatch("Labview.Application")
 VI = LabVIEW.getvireference(myconfig.Config.VI_PATH)
 master=MProbe('Master')
@@ -317,4 +326,3 @@ slave=MProbe('Slave')
 goal=MProbe('Goal')
 read_current=Current('reading')
 desired_current=Current('desired')
-

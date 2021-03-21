@@ -1,7 +1,7 @@
 
 class Config:
     
-    #LABVIEW Configuration
+    # LABVIEW Configuration
     VI_PATH='C:\\LabView\\Mark2\\Python_Comm\\Python_Comm.vi'
 
     MASTER_LABEL = ('master_x', 'master_y', 'master_z', 'master_mx', 'master_my', 'master_mz')
@@ -31,17 +31,17 @@ class Config:
     Y_MAX_MAG_MOMENT_DEVIATE = 0.0
     Z_MAX_MAG_MOMENT_DEVIATE = 0.0
 
-    #Probe dimention in mm
+    # Probe dimension in mm
     PROBE_DIM = 5
     
-    #activate X/Y/Z coordinates OR X/Y/Z M. Moment OR both
+    # activate X/Y/Z coordinates OR X/Y/Z Magnetic Moment OR both
     # COORD -> coordinates
-    # MOMENT -> M. Moments
+    # MOMENT -> Magnetic Moments
     # BOTH -> Both
     # Default -> Both
     TRAINING_MODE = "MOMENT"
     
-    #Reward gradient
+    # Reward gradient
     REWARD_GRADIENT = 10
     
     # in amperes 
@@ -51,14 +51,12 @@ class Config:
     MAX_CURR_DEVIATE = 0.1
     MIN_CURR_DEVIATE = -0.1
 
-    #Change Currents time per second
+    # Change Current times per second
     RUN_TIMES_PER_SEC = 10
 
-    #Timestep Limit for episode
+    # Timestep Limit for episode
     TIMESTEP_LIMIT = 100
     RESET_STEP_COUNT = 10
 
-    #LOGFILE name without file extension (.log will be appended to filename)
+    # LOGFILE name without file extension (.log will be appended to filename)
     LOGFILE = "./log/magroboenv_"
-
-    
